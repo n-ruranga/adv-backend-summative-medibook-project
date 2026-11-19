@@ -1,5 +1,11 @@
 -- MediBook clinic appointment system
 -- Run on a fresh MySQL server: mysql -u root -p < database/schema.sql
+--
+-- MySQL 8 quirks handled here:
+-- 1) STORED generated column + FOREIGN KEY in the same CREATE fails
+-- 2) CHECK constraints on the table can block later FOREIGN KEY ALTERs
+-- 3) ON UPDATE CASCADE with the generated active_slot expression can fail FK creation
+-- So: CREATE (with generated UNIQUE) -> ALTER FKs -> ALTER CHECKs
 
 CREATE DATABASE IF NOT EXISTS medibook
   CHARACTER SET utf8mb4
@@ -51,15 +57,17 @@ CREATE TABLE appointments (
   booked_on DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   cancelled_on DATETIME NULL,
   PRIMARY KEY (id),
-  UNIQUE KEY uq_appointments_active_slot (active_slot),
-  CONSTRAINT fk_appointments_patient
-    FOREIGN KEY (patient_id) REFERENCES patients (id)
-    ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT fk_appointments_doctor
-    FOREIGN KEY (doctor_id) REFERENCES doctors (id)
-    ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT chk_appointments_amount_nonnegative CHECK (amount_paid >= 0),
-  CONSTRAINT chk_appointments_refund_nonnegative CHECK (
-    refund_amount IS NULL OR refund_amount >= 0
-  )
+  UNIQUE KEY uq_appointments_active_slot (active_slot)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE appointments
+  ADD CONSTRAINT fk_appointments_patient
+    FOREIGN KEY (patient_id) REFERENCES patients (id),
+  ADD CONSTRAINT fk_appointments_doctor
+    FOREIGN KEY (doctor_id) REFERENCES doctors (id);
+
+ALTER TABLE appointments
+  ADD CONSTRAINT chk_appointments_amount_nonnegative CHECK (amount_paid >= 0),
+  ADD CONSTRAINT chk_appointments_refund_nonnegative CHECK (
+    refund_amount IS NULL OR refund_amount >= 0
+  );
