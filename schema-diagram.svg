@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="720" viewBox="0 0 1100 720">
+  <rect width="1100" height="720" fill="#f7f9fc"/>
+  <text x="550" y="36" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="700" fill="#1a2332">MediBook Database Schema (3NF)</text>
+  <text x="550" y="58" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#4a5568">Exactly 3 entities · PK/FK marked · UNIQUE active_slot enforces no double-booking</text>
+
+  <!-- patients -->
+  <g>
+    <rect x="40" y="100" width="300" height="260" rx="8" fill="#ffffff" stroke="#2b6cb0" stroke-width="2"/>
+    <rect x="40" y="100" width="300" height="36" rx="8" fill="#2b6cb0"/>
+    <rect x="40" y="120" width="300" height="16" fill="#2b6cb0"/>
+    <text x="190" y="124" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#ffffff">patients</text>
+    <text x="56" y="160" font-family="Consolas, monospace" font-size="13" fill="#1a2332">PK  id INT AUTO_INCREMENT</text>
+    <text x="56" y="185" font-family="Consolas, monospace" font-size="13" fill="#1a2332">    name VARCHAR(100) NOT NULL</text>
+    <text x="56" y="210" font-family="Consolas, monospace" font-size="13" fill="#1a2332">UK  email VARCHAR(150) NOT NULL</text>
+    <text x="56" y="235" font-family="Consolas, monospace" font-size="13" fill="#1a2332">    phone VARCHAR(30) NOT NULL</text>
+    <text x="56" y="260" font-family="Consolas, monospace" font-size="13" fill="#1a2332">    created_at DATETIME NOT NULL</text>
+    <text x="56" y="295" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#2b6cb0">Constraints: UNIQUE(email)</text>
+    <text x="56" y="315" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#4a5568">Cardinality: 1 ’ N appointments</text>
+  </g>
+
+  <!-- doctors -->
+  <g>
+    <rect x="760" y="100" width="300" height="280" rx="8" fill="#ffffff" stroke="#276749" stroke-width="2"/>
+    <rect x="760" y="100" width="300" height="36" rx="8" fill="#276749"/>
+    <rect x="760" y="120" width="300" height="16" fill="#276749"/>
+    <text x="910" y="124" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#ffffff">doctors</text>
+    <text x="776" y="160" font-family="Consolas, monospace" font-size="13" fill="#1a2332">PK  id INT AUTO_INCREMENT</text>
+    <text x="776" y="185" font-family="Consolas, monospace" font-size="13" fill="#1a2332">    name VARCHAR(100) NOT NULL</text>
+    <text x="776" y="210" font-family="Consolas, monospace" font-size="13" fill="#1a2332">    specialty VARCHAR(100) NOT NULL</text>
+    <text x="776" y="235" font-family="Consolas, monospace" font-size="13" fill="#1a2332">    consultation_fee DECIMAL(10,2)</text>
+    <text x="776" y="260" font-family="Consolas, monospace" font-size="13" fill="#1a2332">    room VARCHAR(20) NOT NULL</text>
+    <text x="776" y="285" font-family="Consolas, monospace" font-size="13" fill="#1a2332">    created_at DATETIME NOT NULL</text>
+    <text x="776" y="320" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#276749">CHECK (consultation_fee &gt;= 0)</text>
+    <text x="776" y="340" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#4a5568">Cardinality: 1 ’ N appointments</text>
+  </g>
+
+  <!-- appointments -->
+  <g>
+    <rect x="300" y="420" width="500" height="270" rx="8" fill="#ffffff" stroke="#9b2c2c" stroke-width="2"/>
+    <rect x="300" y="420" width="500" height="36" rx="8" fill="#9b2c2c"/>
+    <rect x="300" y="440" width="500" height="16" fill="#9b2c2c"/>
+    <text x="550" y="444" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#ffffff">appointments</text>
+    <text x="316" y="480" font-family="Consolas, monospace" font-size="12.5" fill="#1a2332">PK  id INT AUTO_INCREMENT</text>
+    <text x="316" y="500" font-family="Consolas, monospace" font-size="12.5" fill="#1a2332">FK  patient_id INT NOT NULL ’ patients(id)</text>
+    <text x="316" y="520" font-family="Consolas, monospace" font-size="12.5" fill="#1a2332">FK  doctor_id INT NOT NULL ’ doctors(id)</text>
+    <text x="316" y="540" font-family="Consolas, monospace" font-size="12.5" fill="#1a2332">    appt_datetime DATETIME NOT NULL</text>
+    <text x="316" y="560" font-family="Consolas, monospace" font-size="12.5" fill="#1a2332">    amount_paid DECIMAL(10,2) NOT NULL</text>
+    <text x="316" y="580" font-family="Consolas, monospace" font-size="12.5" fill="#1a2332">    refund_amount DECIMAL(10,2) NULL</text>
+    <text x="316" y="600" font-family="Consolas, monospace" font-size="12.5" fill="#1a2332">    status ENUM('booked','cancelled') NOT NULL</text>
+    <text x="316" y="620" font-family="Consolas, monospace" font-size="12.5" fill="#1a2332">UK  active_slot VARCHAR(64) GENERATED NULL</text>
+    <text x="316" y="640" font-family="Consolas, monospace" font-size="12.5" fill="#1a2332">    booked_on DATETIME NOT NULL</text>
+    <text x="316" y="660" font-family="Consolas, monospace" font-size="12.5" fill="#1a2332">    cancelled_on DATETIME NULL</text>
+    <text x="316" y="682" font-family="Segoe UI, Arial, sans-serif" font-size="11.5" fill="#9b2c2c">UNIQUE(active_slot): doctor cannot hold two appointments at same datetime</text>
+  </g>
+
+  <!-- relationship lines -->
+  <path d="M190 360 L190 420 L300 450" fill="none" stroke="#2b6cb0" stroke-width="2.5"/>
+  <polygon points="300,450 288,442 288,458" fill="#2b6cb0"/>
+  <text x="200" y="400" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="600" fill="#2b6cb0">1 : N</text>
+
+  <path d="M910 380 L910 420 L800 450" fill="none" stroke="#276749" stroke-width="2.5"/>
+  <polygon points="800,450 812,442 812,458" fill="#276749"/>
+  <text x="860" y="400" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="600" fill="#276749">1 : N</text>
+
+  <text x="550" y="710" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="11" fill="#718096">active_slot = CONCAT(doctor_id, '|', appt_datetime) when status='booked'; else NULL (cancelled slots rebookable)</text>
+</svg>
