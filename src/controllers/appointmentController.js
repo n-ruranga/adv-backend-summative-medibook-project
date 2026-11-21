@@ -84,6 +84,17 @@ async function cancelAppointment(req, res, next) {
 
     const { appointment, refund } = await appointmentModel.cancelAppointment(id);
 
+    await appendAudit('cancellation', {
+      appointmentId: appointment.id,
+      patientId: appointment.patient_id,
+      doctorId: appointment.doctor_id,
+      apptDatetime: appointment.appt_datetime,
+      amountPaid: appointment.amount_paid,
+      refundAmount: refund.refundAmount,
+      refundRate: refund.refundRate,
+      refundTier: refund.tier,
+    });
+
     return res.status(200).json({
       appointment,
       refundAmount: refund.refundAmount,
