@@ -1,5 +1,6 @@
 const appointmentModel = require('../models/appointmentModel');
 const { validateAppointmentSlot } = require('../services/slotValidation');
+const { appendAudit } = require('../services/auditLog');
 
 function createHttpError(status, message, extra = {}) {
   const err = new Error(message);
@@ -39,6 +40,14 @@ async function bookAppointment(req, res, next) {
       patientId,
       doctorId,
       apptDatetime: slot.date,
+    });
+
+    await appendAudit('booking', {
+      appointmentId: appointment.id,
+      patientId: appointment.patient_id,
+      doctorId: appointment.doctor_id,
+      apptDatetime: appointment.appt_datetime,
+      amountPaid: appointment.amount_paid,
     });
 
     return res.status(201).json(appointment);
