@@ -62,6 +62,38 @@ async function bookAppointment(req, res, next) {
   }
 }
 
+/**
+ * POST /api/appointments/:id/cancel — cancel and compute refund server-side.
+ * Any client-supplied refund amount is ignored.
+ */
+async function cancelAppointment(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return next(createHttpError(400, 'Appointment id must be a positive integer'));
+    }
+
+    const { appointment, refund } = await appointmentModel.cancelAppointment(id);
+
+    return res.status(200).json({
+      appointment,
+      refundAmount: refund.refundAmount,
+      refundRate: refund.refundRate,
+      refundTier: refund.tier,
+      noticeHours: refund.noticeHours,
+    });
+  } catch (err) {
+    if (err.code === 'APPOINTMENT_NOT_FOUND') {
+      return next(createHttpError(404, err.message));
+    }
+    if (err.code === 'ALREADY_CANCELLED') {
+      return next(createHttpError(409, err.message));
+    }
+    return next(err);
+  }
+}
+
 module.exports = {
   bookAppointment,
+  cancelAppointment,
 };
