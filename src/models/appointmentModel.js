@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const { MAX_APPOINTMENTS_PER_DAY } = require('../config/constants');
+const { calculateRefund } = require('../services/refundCalculator');
 
 function createBookingError(code, message) {
   const err = new Error(message);
@@ -180,10 +181,110 @@ async function createBooking({ patientId, doctorId, apptDatetime }) {
   }
 }
 
+/**
+ * Cancel an appointment and record its refund in one transaction.
+ * Setting status to 'cancelled' clears generated active_slot (NULL), freeing the slot.
+ *
+ * @param {number} appointmentId
+ * @param {Date} [cancelledAt=new Date()]
+ * @returns {Promise<{ appointment: object, refund: object }>}
+ */
+async function cancelAppointment(appointmentId, cancelledAt = new Date()) {
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [rows] = await connection.query(
+      `
+        SELECT
+          id,
+          patient_id,
+          doctor_id,
+          appt_datetime,
+          amount_paid,
+          refund_amount,
+          status,
+          active_slot,
+          booked_on,
+          cancelled_on
+        FROM appointments
+        WHERE id = ?
+        FOR UPDATE
+      `,
+      [appointmentId]
+    );
+
+    if (rows.length === 0) {
+      throw createBookingError(
+        'APPOINTMENT_NOT_FOUND',
+        `Appointment with id ${appointmentId} not found`
+      );
+    }
+
+    const existing = rows[0];
+    if (existing.status === 'cancelled') {
+      throw createBookingError(
+        'ALREADY_CANCELLED',
+        `Appointment with id ${appointmentId} is already cancelled`
+      );
+    }
+
+    const refund = calculateRefund(
+      existing.appt_datetime,
+      existing.amount_paid,
+      cancelledAt
+    );
+    const cancelledSql = toMySqlDateTime(cancelledAt);
+
+    await connection.query(
+      `
+        UPDATE appointments
+        SET status = 'cancelled',
+            refund_amount = ?,
+            cancelled_on = ?
+        WHERE id = ?
+      `,
+      [refund.refundAmount, cancelledSql, appointmentId]
+    );
+
+    const [updatedRows] = await connection.query(
+      `
+        SELECT
+          id,
+          patient_id,
+          doctor_id,
+          appt_datetime,
+          amount_paid,
+          refund_amount,
+          status,
+          active_slot,
+          booked_on,
+          cancelled_on
+        FROM appointments
+        WHERE id = ?
+      `,
+      [appointmentId]
+    );
+
+    await connection.commit();
+    return {
+      appointment: updatedRows[0],
+      refund,
+    };
+  } catch (err) {
+    await connection.rollback();
+    throw err;
+  } finally {
+    connection.release();
+  }
+}
+
 module.exports = {
   findById,
   countBookedForDoctorOnDate,
   createBooking,
+  cancelAppointment,
   toMySqlDateTime,
   toMySqlDate,
 };
