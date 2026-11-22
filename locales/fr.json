@@ -1,0 +1,13 @@
+{
+  "title": "Retour sur le cours MediBook",
+  "instructions": "Veuillez répondre aux cinq questions ci-dessous. Chaque réponse doit être rédigée dans la zone de texte fournie.",
+  "dateLabel": "Date du jour",
+  "submitLabel": "Envoyer le retour",
+  "questions": [
+    "Quel sujet de ce cours avez-vous trouvé le plus difficile, et pourquoi ?",
+    "Décrivez un concept que vous n'avez compris qu'après les travaux pratiques. Qu'est-ce qui a fait basculer votre compréhension ?",
+    "Comment votre approche de la conception de bases de données ou d'API a-t-elle changé depuis le début du trimestre ?",
+    "Que souhaiteriez-vous améliorer dans la façon dont ce cours a été enseigné ou évalué ?",
+    "Comment comptez-vous appliquer ce que vous avez appris dans ce cours à l'avenir ?"
+  ]
+}
