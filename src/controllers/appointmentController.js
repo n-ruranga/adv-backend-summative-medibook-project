@@ -56,15 +56,35 @@ async function bookAppointment(req, res, next) {
       return next(createHttpError(404, err.message));
     }
     if (err.code === 'SLOT_TAKEN') {
-      return next(createHttpError(409, err.message));
-    }
-    if (err.code === 'DAY_FULL') {
-      // Waitlist join endpoint comes in a later commit; offer is stubbed here.
       return res.status(409).json({
         error: err.message,
         waitlistOffer: true,
+        suggestedScope: 'slot',
+        joinPath: 'POST /api/waitlist',
         message:
-          'This doctor is fully booked for that day. You may join the waitlist (coming soon).',
+          'That slot is taken. Join the waitlist with scope "slot" via POST /api/waitlist.',
+        request: {
+          patient_id: Number(req.body && req.body.patient_id),
+          doctor_id: Number(req.body && req.body.doctor_id),
+          appt_datetime: req.body && req.body.appt_datetime,
+          scope: 'slot',
+        },
+      });
+    }
+    if (err.code === 'DAY_FULL') {
+      return res.status(409).json({
+        error: err.message,
+        waitlistOffer: true,
+        suggestedScope: 'day',
+        joinPath: 'POST /api/waitlist',
+        message:
+          'This doctor is fully booked for that day. Join the waitlist with scope "day" via POST /api/waitlist.',
+        request: {
+          patient_id: Number(req.body && req.body.patient_id),
+          doctor_id: Number(req.body && req.body.doctor_id),
+          appt_datetime: req.body && req.body.appt_datetime,
+          scope: 'day',
+        },
       });
     }
     return next(err);
