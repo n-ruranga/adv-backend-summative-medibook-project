@@ -1,0 +1,114 @@
+const db = require('../config/db');
+const {
+  MAX_APPOINTMENTS_PER_DAY,
+} = require('../config/constants');
+
+/**
+ * Doctor statistics produced entirely in SQL:
+ * net retained revenue, upcoming booked count, next-7-day daily counts,
+ * and utilization % against the 12-slot daily cap.
+ *
+ * @param {number} doctorId
+ * @returns {Promise<object|null>} null if doctor does not exist
+ */
+async function getDoctorStatistics(doctorId) {
+  const [doctors] = await db.query(
+    `SELECT id, name, specialty, consultation_fee, room
+     FROM doctors
+     WHERE id = ?`,
+    [doctorId]
+  );
+  if (doctors.length === 0) {
+    return null;
+  }
+
+  const [revenueRows] = await db.query(
+    `
+      SELECT COALESCE(SUM(
+        CASE
+          WHEN status = 'booked' THEN amount_paid
+          WHEN status = 'cancelled' THEN amount_paid - IFNULL(refund_amount, 0)
+          ELSE 0
+        END
+      ), 0) AS revenue
+      FROM appointments
+      WHERE doctor_id = ?
+    `,
+    [doctorId]
+  );
+
+  const [upcomingRows] = await db.query(
+    `
+      SELECT COUNT(*) AS upcoming_count
+      FROM appointments
+      WHERE doctor_id = ?
+        AND status = 'booked'
+        AND appt_datetime > NOW()
+    `,
+    [doctorId]
+  );
+
+  const [dailyRows] = await db.query(
+    `
+      WITH RECURSIVE days AS (
+        SELECT CURDATE() AS day_date
+        UNION ALL
+        SELECT day_date + INTERVAL 1 DAY
+        FROM days
+        WHERE day_date < CURDATE() + INTERVAL 6 DAY
+      )
+      SELECT
+        DATE_FORMAT(d.day_date, '%Y-%m-%d') AS date,
+        COUNT(a.id) AS appointment_count,
+        ROUND(COUNT(a.id) * 100.0 / ?, 2) AS utilization_percent
+      FROM days d
+      LEFT JOIN appointments a
+        ON a.doctor_id = ?
+        AND DATE(a.appt_datetime) = d.day_date
+        AND a.status = 'booked'
+      GROUP BY d.day_date
+      ORDER BY d.day_date ASC
+    `,
+    [MAX_APPOINTMENTS_PER_DAY, doctorId]
+  );
+
+  const [utilRows] = await db.query(
+    `
+      WITH RECURSIVE days AS (
+        SELECT CURDATE() AS day_date
+        UNION ALL
+        SELECT day_date + INTERVAL 1 DAY
+        FROM days
+        WHERE day_date < CURDATE() + INTERVAL 6 DAY
+      )
+      SELECT ROUND(
+        (
+          SELECT COUNT(*)
+          FROM appointments a
+          WHERE a.doctor_id = ?
+            AND a.status = 'booked'
+            AND DATE(a.appt_datetime) BETWEEN CURDATE() AND CURDATE() + INTERVAL 6 DAY
+        ) * 100.0 / (? * 7),
+        2
+      ) AS overall_utilization_percent
+    `,
+    [doctorId, MAX_APPOINTMENTS_PER_DAY]
+  );
+
+  return {
+    doctor: doctors[0],
+    revenue: Number(revenueRows[0].revenue),
+    upcomingCount: Number(upcomingRows[0].upcoming_count),
+    appointmentsNext7Days: dailyRows.map((row) => ({
+      date: row.date,
+      appointmentCount: Number(row.appointment_count),
+      utilizationPercent: Number(row.utilization_percent),
+    })),
+    overallUtilizationPercent: Number(utilRows[0].overall_utilization_percent),
+    dailyCap: MAX_APPOINTMENTS_PER_DAY,
+  };
+}
+
+module.exports = {
+  getDoctorStatistics,
+};
