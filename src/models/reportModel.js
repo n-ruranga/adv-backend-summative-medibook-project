@@ -1,6 +1,7 @@
 const db = require('../config/db');
 const {
   MAX_APPOINTMENTS_PER_DAY,
+  BUSY_DAY_UTILIZATION_THRESHOLD,
 } = require('../config/constants');
 
 /**
@@ -146,7 +147,46 @@ async function getDoctorsReport() {
   }));
 }
 
+/**
+ * Every (doctor, date) where booked appointments exceed 80% of the 12-slot cap.
+ * Threshold: COUNT(*) > MAX_APPOINTMENTS_PER_DAY * BUSY_DAY_UTILIZATION_THRESHOLD
+ *
+ * @returns {Promise<object[]>}
+ */
+async function getBusyDaysReport() {
+  const busyThreshold = MAX_APPOINTMENTS_PER_DAY * BUSY_DAY_UTILIZATION_THRESHOLD;
+
+  const [rows] = await db.query(
+    `
+      SELECT
+        a.doctor_id,
+        d.name AS doctor_name,
+        DATE_FORMAT(DATE(a.appt_datetime), '%Y-%m-%d') AS appointment_date,
+        COUNT(*) AS booked_count,
+        ROUND(COUNT(*) * 100.0 / ?, 2) AS utilization_percent
+      FROM appointments a
+      INNER JOIN doctors d ON d.id = a.doctor_id
+      WHERE a.status = 'booked'
+      GROUP BY a.doctor_id, d.name, DATE(a.appt_datetime)
+      HAVING COUNT(*) > ?
+      ORDER BY appointment_date ASC, a.doctor_id ASC
+    `,
+    [MAX_APPOINTMENTS_PER_DAY, busyThreshold]
+  );
+
+  return rows.map((row) => ({
+    doctorId: row.doctor_id,
+    doctorName: row.doctor_name,
+    appointmentDate: row.appointment_date,
+    bookedCount: Number(row.booked_count),
+    utilizationPercent: Number(row.utilization_percent),
+    dailyCap: MAX_APPOINTMENTS_PER_DAY,
+    busyThreshold,
+  }));
+}
+
 module.exports = {
   getDoctorStatistics,
   getDoctorsReport,
+  getBusyDaysReport,
 };
