@@ -128,3 +128,15 @@ Create a **simple HTML page** (served by your Express app at `GET /feedback`) co
 - A short **viva/demo (10 minutes)** walkthrough.
 
 **Automatic penalties:** SQL injection vector anywhere in the app (−15), secrets committed to the repo (−5), app does not start per README instructions (−10), work the student cannot explain in the video (or at a follow-up viva if called) | Academic integrity referral; affected criteria re-scored at Developing or below |
+
+---
+
+## Design justification — Part E (Queues & Redis)
+
+Waitlists and confirmation jobs use Redis lists (`RPUSH` / `BLPOP` / `LPOP`) so queue state survives process restarts and stays outside MySQL (the schema is limited to three tables).
+
+The **worker runs as a separate process** (`npm run worker`) so a slow or stuck promotion/confirmation job cannot block HTTP request handling in the Express server.
+
+When a cancellation frees a slot, the API enqueues a promotion job. The worker pops the first waitlisted patient and attempts `createBooking`. If that booking fails, the patient is **re-queued to the front of the waitlist** (`LPUSH`) and the failure is audit-logged — they are never dropped from both Redis and MySQL at once.
+
+Confirmation jobs for successful bookings (including promotions) are processed by the same worker, which writes a confirmation message to `logs/audit.log` (no real SMS/email send).

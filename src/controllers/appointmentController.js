@@ -2,6 +2,7 @@ const appointmentModel = require('../models/appointmentModel');
 const { validateAppointmentSlot } = require('../services/slotValidation');
 const { appendAudit } = require('../services/auditLog');
 const { enqueueConfirmation } = require('../services/confirmationQueue');
+const { enqueuePromotionJob } = require('../services/waitlist');
 
 function createHttpError(status, message, extra = {}) {
   const err = new Error(message);
@@ -122,12 +123,22 @@ async function cancelAppointment(req, res, next) {
       refundTier: refund.tier,
     });
 
+    try {
+      await enqueuePromotionJob({
+        doctorId: appointment.doctor_id,
+        apptDatetime: appointment.appt_datetime,
+      });
+    } catch (queueErr) {
+      console.error('Failed to enqueue waitlist promotion job:', queueErr.message);
+    }
+
     return res.status(200).json({
       appointment,
       refundAmount: refund.refundAmount,
       refundRate: refund.refundRate,
       refundTier: refund.tier,
       noticeHours: refund.noticeHours,
+      waitlistNotified: true,
     });
   } catch (err) {
     if (err.code === 'APPOINTMENT_NOT_FOUND') {
