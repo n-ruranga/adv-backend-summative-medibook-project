@@ -37,4 +37,24 @@ describe('calculateRefund', () => {
     expect(result.refundAmount).toBe(0);
     expect(result.noticeHours).toBe(12);
   });
+
+  test('exactly 24 hours notice returns 50% refund (boundary)', () => {
+    const cancelledAt = hoursBefore(APPT, 24);
+    const result = calculateRefund(APPT, 200, cancelledAt);
+
+    expect(result.noticeHours).toBe(24);
+    expect(result.tier).toBe('partial');
+    expect(result.refundRate).toBe(0.5);
+    expect(result.refundAmount).toBe(100);
+  });
+
+  test('exactly 48 hours notice returns 50% refund (boundary)', () => {
+    const cancelledAt = hoursBefore(APPT, 48);
+    const result = calculateRefund(APPT, 200, cancelledAt);
+
+    expect(result.noticeHours).toBe(48);
+    expect(result.tier).toBe('partial');
+    expect(result.refundRate).toBe(0.5);
+    expect(result.refundAmount).toBe(100);
+  });
 });
