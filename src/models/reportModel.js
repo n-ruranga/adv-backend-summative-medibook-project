@@ -109,6 +109,44 @@ async function getDoctorStatistics(doctorId) {
   };
 }
 
+/**
+ * Every doctor's total appointments and net retained revenue,
+ * including doctors with zero appointments (LEFT JOIN).
+ *
+ * @returns {Promise<object[]>}
+ */
+async function getDoctorsReport() {
+  const [rows] = await db.query(
+    `
+      SELECT
+        d.id AS doctor_id,
+        d.name AS doctor_name,
+        d.specialty,
+        COUNT(a.id) AS total_appointments,
+        COALESCE(SUM(
+          CASE
+            WHEN a.status = 'booked' THEN a.amount_paid
+            WHEN a.status = 'cancelled' THEN a.amount_paid - IFNULL(a.refund_amount, 0)
+            ELSE 0
+          END
+        ), 0) AS revenue
+      FROM doctors d
+      LEFT JOIN appointments a ON a.doctor_id = d.id
+      GROUP BY d.id, d.name, d.specialty
+      ORDER BY d.id ASC
+    `
+  );
+
+  return rows.map((row) => ({
+    doctorId: row.doctor_id,
+    doctorName: row.doctor_name,
+    specialty: row.specialty,
+    totalAppointments: Number(row.total_appointments),
+    revenue: Number(row.revenue),
+  }));
+}
+
 module.exports = {
   getDoctorStatistics,
+  getDoctorsReport,
 };
