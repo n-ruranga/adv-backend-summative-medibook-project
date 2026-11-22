@@ -1,6 +1,7 @@
 const appointmentModel = require('../models/appointmentModel');
 const { validateAppointmentSlot } = require('../services/slotValidation');
 const { appendAudit } = require('../services/auditLog');
+const { enqueueConfirmation } = require('../services/confirmationQueue');
 
 function createHttpError(status, message, extra = {}) {
   const err = new Error(message);
@@ -49,6 +50,12 @@ async function bookAppointment(req, res, next) {
       apptDatetime: appointment.appt_datetime,
       amountPaid: appointment.amount_paid,
     });
+
+    try {
+      await enqueueConfirmation(appointment);
+    } catch (queueErr) {
+      console.error('Failed to enqueue confirmation job:', queueErr.message);
+    }
 
     return res.status(201).json(appointment);
   } catch (err) {
