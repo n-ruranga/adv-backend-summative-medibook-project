@@ -1,4 +1,5 @@
 const doctorModel = require('../models/doctorModel');
+const reportModel = require('../models/reportModel');
 
 function createHttpError(status, message) {
   const err = new Error(message);
@@ -108,10 +109,29 @@ async function deleteDoctor(req, res, next) {
   }
 }
 
+async function getDoctorStatistics(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return next(createHttpError(400, 'Doctor id must be a positive integer'));
+    }
+
+    const stats = await reportModel.getDoctorStatistics(id);
+    if (!stats) {
+      return next(createHttpError(404, `Doctor with id ${id} not found`));
+    }
+
+    return res.status(200).json(stats);
+  } catch (err) {
+    return next(err);
+  }
+}
+
 module.exports = {
   createDoctor,
   listDoctors,
   getDoctor,
   updateDoctor,
   deleteDoctor,
+  getDoctorStatistics,
 };
