@@ -9,9 +9,16 @@ const redis = new Redis({
   host: process.env.REDIS_HOST || 'localhost',
   port: Number(process.env.REDIS_PORT) || 6379,
   password: process.env.REDIS_PASSWORD || undefined,
-  maxRetriesPerRequest: null,
+  // Connect on first command so requiring modules does not spam errors if Redis is down.
+  lazyConnect: true,
+  maxRetriesPerRequest: 3,
   enableReadyCheck: true,
-  lazyConnect: false,
+  retryStrategy(times) {
+    if (times > 10) {
+      return null;
+    }
+    return Math.min(times * 200, 2000);
+  },
 });
 
 redis.on('error', (err) => {
