@@ -144,37 +144,64 @@ Create a **simple HTML page** (served by your Express app at `GET /feedback`) co
 
 ### Prerequisites
 - Node.js 18+
-- MySQL 8 (or MariaDB 10.4+ with compatible generated columns / CHECK support)
+- MySQL 8 (or MariaDB 10.4+ with compatible generated columns / CHECK support) — e.g. XAMPP
 - Redis 6+
-- Copy environment variables from [`.env.example`](.env.example) to `.env` and fill in your local values
+- Schema diagram: [`schema-diagram.png`](schema-diagram.png) (repo root)
 
-### 1. Install dependencies
+### 1. Environment
+Copy [`.env.example`](.env.example) to `.env` and fill in your local values:
+
+```bash
+# macOS / Linux
+cp .env.example .env
+
+# Windows (PowerShell / cmd)
+copy .env.example .env
+```
+
+### 2. Install dependencies
 ```bash
 npm install
 ```
 
-### 2. Create and seed the database
+### 3. Create and seed the database
 ```bash
+# macOS / Linux / Git Bash
 mysql -u root -p < database/schema.sql
 mysql -u root -p < database/seed.sql
 ```
 
-### 3. Start Redis
+**Windows PowerShell** (`<` redirection is not supported — pipe instead):
+
+```powershell
+Get-Content -Raw database\schema.sql | mysql -u root -p
+Get-Content -Raw database\seed.sql   | mysql -u root -p
+```
+
+If `mysql` is not on your PATH (XAMPP), use the full path, e.g. `"C:\xampp\mysql\bin\mysql.exe"`.
+
+### 4. Start Redis
 Ensure Redis is listening on the host/port in `.env` (default `localhost:6379`).
 
-### 4. Start the API
+Example with Docker:
+
+```bash
+docker run -d --name medibook-redis -p 6379:6379 redis:7
+```
+
+### 5. Start the API
 ```bash
 npm start
 ```
 The API listens on `PORT` from `.env` (default `3000`). Health check: `GET /health`.
 
-### 5. Start the background worker (separate terminal)
+### 6. Start the background worker (separate terminal)
 ```bash
 npm run worker
 ```
 Required for confirmation jobs and waitlist promotion after cancellations.
 
-### 6. Run unit tests (no MySQL/Redis required)
+### 7. Run unit tests (no MySQL/Redis required)
 ```bash
 npm test
 ```
