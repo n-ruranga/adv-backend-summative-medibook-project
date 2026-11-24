@@ -1,5 +1,6 @@
 const express = require('express');
 const errorHandler = require('./middleware/errorHandler');
+const { notFoundHandler } = errorHandler;
 const patientRoutes = require('./routes/patientRoutes');
 const doctorRoutes = require('./routes/doctorRoutes');
 const appointmentRoutes = require('./routes/appointmentRoutes');
@@ -22,6 +23,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/waitlist', waitlistRoutes);
 app.use('/feedback', feedbackRoutes);
 
+app.use(notFoundHandler);
 app.use(errorHandler);
 
 module.exports = app;

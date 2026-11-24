@@ -4,10 +4,12 @@ const { appendAudit } = require('../services/auditLog');
 const { enqueueConfirmation } = require('../services/confirmationQueue');
 const { enqueuePromotionJob } = require('../services/waitlist');
 
-function createHttpError(status, message, extra = {}) {
+function createHttpError(status, message, details) {
   const err = new Error(message);
   err.status = status;
-  err.extra = extra;
+  if (details && typeof details === 'object') {
+    err.details = details;
+  }
   return err;
 }
 
@@ -64,36 +66,38 @@ async function bookAppointment(req, res, next) {
       return next(createHttpError(404, err.message));
     }
     if (err.code === 'SLOT_TAKEN') {
-      return res.status(409).json({
-        error: err.message,
-        waitlistOffer: true,
-        suggestedScope: 'slot',
-        joinPath: 'POST /api/waitlist',
-        message:
-          'That slot is taken. Join the waitlist with scope "slot" via POST /api/waitlist.',
-        request: {
-          patient_id: Number(req.body && req.body.patient_id),
-          doctor_id: Number(req.body && req.body.doctor_id),
-          appt_datetime: req.body && req.body.appt_datetime,
-          scope: 'slot',
-        },
-      });
+      return next(
+        createHttpError(409, err.message, {
+          waitlistOffer: true,
+          suggestedScope: 'slot',
+          joinPath: 'POST /api/waitlist',
+          message:
+            'That slot is taken. Join the waitlist with scope "slot" via POST /api/waitlist.',
+          request: {
+            patient_id: Number(req.body && req.body.patient_id),
+            doctor_id: Number(req.body && req.body.doctor_id),
+            appt_datetime: req.body && req.body.appt_datetime,
+            scope: 'slot',
+          },
+        })
+      );
     }
     if (err.code === 'DAY_FULL') {
-      return res.status(409).json({
-        error: err.message,
-        waitlistOffer: true,
-        suggestedScope: 'day',
-        joinPath: 'POST /api/waitlist',
-        message:
-          'This doctor is fully booked for that day. Join the waitlist with scope "day" via POST /api/waitlist.',
-        request: {
-          patient_id: Number(req.body && req.body.patient_id),
-          doctor_id: Number(req.body && req.body.doctor_id),
-          appt_datetime: req.body && req.body.appt_datetime,
-          scope: 'day',
-        },
-      });
+      return next(
+        createHttpError(409, err.message, {
+          waitlistOffer: true,
+          suggestedScope: 'day',
+          joinPath: 'POST /api/waitlist',
+          message:
+            'This doctor is fully booked for that day. Join the waitlist with scope "day" via POST /api/waitlist.',
+          request: {
+            patient_id: Number(req.body && req.body.patient_id),
+            doctor_id: Number(req.body && req.body.doctor_id),
+            appt_datetime: req.body && req.body.appt_datetime,
+            scope: 'day',
+          },
+        })
+      );
     }
     return next(err);
   }
