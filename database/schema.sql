@@ -46,11 +46,12 @@ CREATE TABLE appointments (
   amount_paid DECIMAL(10, 2) NOT NULL,
   refund_amount DECIMAL(10, 2) NULL,
   status ENUM('booked', 'cancelled') NOT NULL DEFAULT 'booked',
+  -- CAST/CONCAT only: MariaDB 10.4 (XAMPP) rejects DATE_FORMAT() in GENERATED columns
   active_slot VARCHAR(64)
     GENERATED ALWAYS AS (
       IF(
         status = 'booked',
-        CONCAT(doctor_id, '|', DATE_FORMAT(appt_datetime, '%Y-%m-%d %H:%i:%s')),
+        CONCAT(doctor_id, '|', CAST(appt_datetime AS CHAR(19))),
         NULL
       )
     ) STORED,
