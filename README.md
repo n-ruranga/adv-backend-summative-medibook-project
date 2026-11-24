@@ -131,6 +131,59 @@ Create a **simple HTML page** (served by your Express app at `GET /feedback`) co
 
 ---
 
+## Setup & Run
+
+### Prerequisites
+- Node.js 18+
+- MySQL 8 (or MariaDB 10.4+ with compatible generated columns / CHECK support)
+- Redis 6+
+- Copy environment variables from [`.env.example`](.env.example) to `.env` and fill in your local values
+
+### 1. Install dependencies
+```bash
+npm install
+```
+
+### 2. Create and seed the database
+```bash
+mysql -u root -p < database/schema.sql
+mysql -u root -p < database/seed.sql
+```
+
+### 3. Start Redis
+Ensure Redis is listening on the host/port in `.env` (default `localhost:6379`).
+
+### 4. Start the API
+```bash
+npm start
+```
+The API listens on `PORT` from `.env` (default `3000`). Health check: `GET /health`.
+
+### 5. Start the background worker (separate terminal)
+```bash
+npm run worker
+```
+Required for confirmation jobs and waitlist promotion after cancellations.
+
+### 6. Run unit tests (no MySQL/Redis required)
+```bash
+npm test
+```
+
+### Useful endpoints
+| Method | Path | Purpose |
+|--------|------|---------|
+| CRUD | `/api/patients`, `/api/doctors` | Patient and doctor management |
+| POST | `/api/appointments` | Book an appointment |
+| POST | `/api/appointments/:id/cancel` | Cancel + server-side refund |
+| POST | `/api/waitlist` | Join day/slot waitlist after a 409 offer |
+| GET | `/api/doctors/:id/statistics` | Doctor statistics |
+| GET | `/api/reports/doctors` | Doctors report (includes zero appointments) |
+| GET | `/api/reports/busy-days` | Days over 80% of the 12-slot cap |
+| GET | `/feedback?lang=en\|fr` | Course feedback page (i18n) |
+
+---
+
 ## Design justification — Part E (Queues & Redis)
 
 Waitlists and confirmation jobs use Redis lists (`RPUSH` / `BLPOP` / `LPOP`) so queue state survives process restarts and stays outside MySQL (the schema is limited to three tables).
