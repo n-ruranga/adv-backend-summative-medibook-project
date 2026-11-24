@@ -9,3 +9,10 @@ coverage/
 .vscode/
 *.swp
 *.swo
+
+# Demo video (hosted on Google Drive; do not push large media)
+*.mp4
+*.mov
+*.webm
+*.mkv
+medibook-demo-video.mp4

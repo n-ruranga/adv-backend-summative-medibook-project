@@ -7,6 +7,15 @@
 
 ---
 
+## Demo video (required walkthrough)
+
+> **Watch the MediBook demo video:**  
+> **https://drive.google.com/file/d/1iZqItjZQMxmqZHRvxkPPTx5JP8r6w-HF/view?usp=sharing**
+
+End-to-end walkthrough of the running API (booking, cancellation/refunds, waitlist + worker, reports, feedback i18n) and the key design decisions.
+
+---
+
 ## Scenario — "MediBook" Clinic Appointment System
 
 A community clinic wants a backend service for booking doctor appointments. Doctors see patients in fixed 30-minute slots during working hours (09:00–17:00), each doctor can handle at most **12 appointments per day**, and the clinic administrator needs reports. You will design the database, build the API, and handle the operational concerns (background jobs, logging, testing).
