@@ -184,6 +184,20 @@ npm test
 
 ---
 
+## Design justification — Part C (Booking & cancellation)
+
+**Concurrency:** Booking runs in a MySQL transaction. The doctor row is locked with `SELECT ... FOR UPDATE`, then the day's booked rows are locked and counted against the 12-slot daily cap before insert. Same-slot races are rejected by the `UNIQUE(active_slot)` generated column (`doctor_id|datetime` only while `status='booked'`). Duplicate-key errors map to HTTP 409.
+
+**Slot rules:** Pure helpers enforce future-only bookings, 30-minute alignment, and starts from 09:00 through 16:30 (so a visit ends by 17:00). Constants live in `src/config/constants.js`.
+
+**Refunds:** Computed only on the server from notice hours until `appt_datetime`: `>48h` → 100%; `24–48h` inclusive (exact 24h and 48h) → 50%; `<24h` → 0%. Cancellation updates `status`, `refund_amount`, and `cancelled_on` in one transaction so the refund record cannot succeed without the cancel (and vice versa). Clearing `status` to `cancelled` nulls `active_slot`, so the slot is rebookable while history is kept.
+
+**Revenue (reports):** Net retained = booked `amount_paid` + cancelled `(amount_paid - refund_amount)`, all aggregated in SQL.
+
+## Design justification — Part D (Audit log)
+
+Successful bookings and cancellations append one JSON line each to `logs/audit.log` via async `fs.promises` (`mkdir` + `appendFile`). The `logs/` directory is created on first write. Logging failures are caught and never fail the HTTP response. No `*Sync` filesystem calls run inside request handlers.
+
 ## Design justification — Part E (Queues & Redis)
 
 Waitlists and confirmation jobs use Redis lists (`RPUSH` / `BLPOP` / `LPOP`) so queue state survives process restarts and stays outside MySQL (the schema is limited to three tables).
